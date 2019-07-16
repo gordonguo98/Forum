@@ -8,4 +8,16 @@
         <item name="colorAccent">@color/colorAccent</item>
     </style>
 
+    <!-- ToolBar菜单样式 -->
+    <style name="ToolbarTheme" parent="@style/ThemeOverlay.AppCompat.ActionBar">
+        <item name="actionMenuTextColor">@color/textColor</item> <!--  敲定颜色-->
+        <item name="android:textSize">14sp</item> <!--  搞掂字体大小-->
+    </style>
+
+    <style name="BottomDialog" parent="@style/AppTheme">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:windowIsFloating">true</item>
+    </style>
+
 </resources>

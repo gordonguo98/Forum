@@ -5,7 +5,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F1F1F1"
+    android:background="#EFEFEF"
     tools:context=".Activity.ForumActivity">
 
     <androidx.appcompat.widget.Toolbar

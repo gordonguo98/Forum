@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".Activity.NewPostActivity">
+
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/activity_new_post_toolbar"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:background="?attr/colorPrimary"
+        android:minHeight="?attr/actionBarSize"
+        android:theme="@style/ToolbarTheme"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:navigationIcon="@drawable/ic_arrow_back_black_24dp"/>
+
+    <com.sendtion.xrichtext.RichTextEditor
+        android:id="@+id/et_new_content"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="16dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/activity_new_post_toolbar"
+        app:rt_editor_image_bottom="10"
+        app:rt_editor_image_height="500"
+        app:rt_editor_text_color="#1F1F1F"
+        app:rt_editor_text_init_hint="在这里输入内容"
+        app:rt_editor_text_line_space="6dp"
+        app:rt_editor_text_size="16sp" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

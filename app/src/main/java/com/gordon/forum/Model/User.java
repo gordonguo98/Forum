@@ -4,6 +4,7 @@ import android.graphics.Bitmap;
 
 public class User {
 
+    private String userId;
     private Bitmap profile_photo;
     private String phone_num;
     private String name;
@@ -12,13 +13,22 @@ public class User {
 
     private int grade;
 
-    public User(Bitmap profile_photo, String phone_num, String name, String university, String major, int grade) {
+    public User(String userId, Bitmap profile_photo, String phone_num, String name, String university, String major, int grade) {
+        this.userId = userId;
         this.profile_photo = profile_photo;
         this.phone_num = phone_num;
         this.name = name;
         this.university = university;
         this.major = major;
         this.grade = grade;
+    }
+
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
     }
 
     public Bitmap getProfile_photo() {

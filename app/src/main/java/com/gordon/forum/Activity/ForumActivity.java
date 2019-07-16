@@ -6,7 +6,10 @@ import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import androidx.appcompat.widget.Toolbar;
 
+import android.app.AlertDialog;
+import android.app.Dialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -14,12 +17,14 @@ import android.graphics.Rect;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Gravity;
+import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.gordon.forum.Adapter.PostAdapter;
 import com.gordon.forum.Model.Post;
@@ -81,10 +86,23 @@ public class ForumActivity extends AppCompatActivity {
     }
 
     @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.activity_forum_menu, menu);
+        return true;
+    }
+
+    @Override
     public boolean onOptionsItemSelected(MenuItem item) {
 
         if (item.getItemId() == android.R.id.home) {
             finish();
+            return true;
+        }
+
+        if (item.getItemId() == R.id.action_new_post) {
+            Intent intent = new Intent(ForumActivity.this, NewPostActivity.class);
+            startActivity(intent);
             return true;
         }
 
@@ -105,6 +123,7 @@ public class ForumActivity extends AppCompatActivity {
     }
 
     private void getData(String url){
+
         try {
             //从服务器获取数据
             OkHttpClient okHttpClient = new OkHttpClient.Builder().readTimeout(5, TimeUnit.SECONDS).build();
@@ -129,6 +148,11 @@ public class ForumActivity extends AppCompatActivity {
         }catch(Exception e){
             e.printStackTrace();
         }
+    }
+
+    public boolean deletePost() {
+        //此处处理删除帖子逻辑，由于需要后台服务，故暂时不实现
+        return true;
     }
 
     private void initImgLoadingOptions(){
@@ -158,15 +182,62 @@ public class ForumActivity extends AppCompatActivity {
         //测试数据，正常情况下应通过网络请求获得
         createTestData();
 
-        SwipeRefreshLayout refreshLayout = (SwipeRefreshLayout) findViewById(R.id.refresh_post_list);
+        final SwipeRefreshLayout refreshLayout = (SwipeRefreshLayout) findViewById(R.id.refresh_post_list);
         refreshLayout.setColorSchemeResources(R.color.colorPrimary);
         refreshLayout.setProgressBackgroundColorSchemeResource(android.R.color.white);
 
         RecyclerView recyclerView = (RecyclerView) findViewById(R.id.post_list);
         LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this);
         recyclerView.setLayoutManager(linearLayoutManager);
+
         final PostAdapter postAdapter = new PostAdapter(this, postList);
-        recyclerView.addItemDecoration(new SpacesItemDecoration(12));
+        postAdapter.setOnItemClickListener(new PostAdapter.OnItemClickListener() {
+            @Override
+            public void onItemClick(View view, int position) {
+                Toast.makeText(view.getContext(), "position: " + position, Toast.LENGTH_LONG).show();
+                Intent intent = new Intent(ForumActivity.this, PostActivity.class);
+                intent.putExtra("postId", postList.get(position).getPostId());
+                startActivity(intent);
+            }
+        });
+        postAdapter.setOnItemLongClickListener(new PostAdapter.OnItemLongClickListener() {
+            @Override
+            public void onItemLongClick(View view, final int position) {
+                //if(postList.get(position).getCreator().getUserId().equals(userId)){
+                    //如果帖子是自己发布的，则可以删除
+                //}
+
+                //为测试，以下代码不考虑帖子是不是本人的
+                final AlertDialog.Builder normalDialog = new AlertDialog.Builder(ForumActivity.this);
+                normalDialog.setIcon(R.drawable.ic_delete_forever_black_24dp);
+                normalDialog.setTitle("删除帖子");
+                normalDialog.setMessage("确认删除?");
+                normalDialog.setPositiveButton("确定",
+                        new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                //删除帖子
+                                if(deletePost()) {
+                                    postList.remove(position);
+                                    postAdapter.notifyDataSetChanged();
+                                }
+                                else
+                                    Toast.makeText(ForumActivity.this, "删除失败", Toast.LENGTH_LONG).show();
+                            }
+                        });
+                normalDialog.setNegativeButton("取消",
+                        new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                //取消删除
+                            }
+                        });
+                // 显示
+                normalDialog.show();
+            }
+        });
+
+        recyclerView.addItemDecoration(new SpacesItemDecoration(14));//设定间隔
         recyclerView.setAdapter(postAdapter);
 
         refreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
@@ -175,6 +246,7 @@ public class ForumActivity extends AppCompatActivity {
                 //下拉刷新帖子列表
                 //getData(url);
                 postAdapter.notifyDataSetChanged();
+                refreshLayout.setRefreshing(false);
             }
         });
     }
@@ -186,10 +258,10 @@ public class ForumActivity extends AppCompatActivity {
         }
         List<User> users = new ArrayList<>();
         for(int i = 0; i < 10; i++){
-            users.add(new User(profile_photos.get(i), "00000000", "张三", "北京大学", "软件工程", 2017));
+            users.add(new User(i+"", profile_photos.get(i), "00000000", "张三", "北京大学", "软件工程", 2017));
         }
         for(int i = 0; i < 10; i++){
-            postList.add(new Post(users.get(i), "请问今天布置了啥作业？", new Date(), null, 10, 10));
+            postList.add(new Post(i+"", users.get(i), "请问今天布置了啥作业？", new Date(), null, 10, 10));
         }
     }
 

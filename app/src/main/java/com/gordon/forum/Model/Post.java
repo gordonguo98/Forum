@@ -1,12 +1,10 @@
 package com.gordon.forum.Model;
 
-import android.graphics.Bitmap;
-
 import java.util.Date;
-import java.util.List;
 
 public class Post {
 
+    private String postId;
     private User creator;
     private String question;
     private Date createTime;
@@ -14,13 +12,22 @@ public class Post {
     private int likeNum;
     private int replyNum;
 
-    public Post(User creator, String question, Date createTime, String contentImages, int likeNum, int replyNum) {
+    public Post(String postId, User creator, String question, Date createTime, String contentImages, int likeNum, int replyNum) {
+        this.postId = postId;
         this.creator = creator;
         this.question = question;
         this.createTime = createTime;
         this.contentImages = contentImages;
         this.likeNum = likeNum;
         this.replyNum = replyNum;
+    }
+
+    public String getPostId() {
+        return postId;
+    }
+
+    public void setPostId(String postId) {
+        this.postId = postId;
     }
 
     public User getCreator() {

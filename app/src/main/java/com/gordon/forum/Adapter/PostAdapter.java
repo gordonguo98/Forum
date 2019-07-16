@@ -1,7 +1,8 @@
 package com.gordon.forum.Adapter;
 
+import android.app.Activity;
 import android.content.Context;
-import android.graphics.drawable.BitmapDrawable;
+import android.content.Intent;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -13,6 +14,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.gordon.forum.Activity.PostActivity;
 import com.gordon.forum.Model.Post;
 import com.gordon.forum.R;
 import com.lzy.ninegrid.ImageInfo;
@@ -26,11 +28,24 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.List;
 
-public class PostAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+import de.hdodenhof.circleimageview.CircleImageView;
+
+public class PostAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> implements View.OnClickListener, View.OnLongClickListener{
 
     private Context mContext;
     private List<Post> mList;
     private static final String SERVER_ADDRESS_IMG = "192.168.1.0:8080";//服务器地址
+
+    private OnItemClickListener mOnItemClickListener;
+    private OnItemLongClickListener mOnItemLongClickListener;
+
+    public interface OnItemClickListener {
+        void onItemClick(View view, int position);
+    }
+
+    public interface OnItemLongClickListener {
+        void onItemLongClick(View view, int position);
+    }
 
     public PostAdapter(Context mContext, List<Post> list) {
         this.mContext = mContext;
@@ -41,12 +56,15 @@ public class PostAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     @Override
     public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int i) {
         View item = LayoutInflater.from(viewGroup.getContext()).inflate(R.layout.activity_forum_post, viewGroup, false);
+        item.setOnClickListener(this);
+        item.setOnLongClickListener(this);
         return new MyViewHolder(item);
     }
 
     @Override
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder viewHolder, int i) {
         MyViewHolder holder = (MyViewHolder) viewHolder;
+        viewHolder.itemView.setTag(i);
         Post data = mList.get(i);
         holder.profilePhoto.setImageBitmap(data.getCreator().getProfile_photo());
         holder.userName.setText(data.getCreator().getName());
@@ -81,6 +99,15 @@ public class PostAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         holder.replyNum.setText((data.getReplyNum()+""));
         holder.like.setImageResource(R.drawable.ic_favorite_border_black_24dp);
         holder.likeNum.setText((data.getLikeNum()+""));
+
+        holder.reply.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(view.getContext(), PostActivity.class);
+                ((Activity) view.getContext()).startActivity(intent);
+            }
+        });
+
     }
 
     @Override
@@ -89,7 +116,7 @@ public class PostAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     }
 
     class MyViewHolder extends RecyclerView.ViewHolder {
-        ImageView profilePhoto;
+        CircleImageView profilePhoto;
         TextView userName;
         TextView createDate;
         TextView content;
@@ -111,6 +138,29 @@ public class PostAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             likeNum = itemView.findViewById(R.id.post_like_num);
             nineGridView = itemView.findViewById(R.id.post_nine_grid);
         }
+    }
+
+    @Override
+    public void onClick(View view) {
+        if (mOnItemClickListener != null) {
+            mOnItemClickListener.onItemClick(view, (int) view.getTag());//注意这里使用getTag方法获取position
+        }
+    }
+
+    @Override
+    public boolean onLongClick(View view) {
+        if (mOnItemLongClickListener != null) {
+            mOnItemLongClickListener.onItemLongClick(view, (int) view.getTag());//注意这里使用getTag方法获取position
+        }
+        return true;
+    }
+
+    public void setOnItemClickListener(OnItemClickListener listener) {
+        this.mOnItemClickListener = listener;
+    }
+
+    public void setOnItemLongClickListener(OnItemLongClickListener listener){
+        this.mOnItemLongClickListener = listener;
     }
 
 }
