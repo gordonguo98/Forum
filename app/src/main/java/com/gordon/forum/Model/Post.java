@@ -1,6 +1,7 @@
 package com.gordon.forum.Model;
 
 import java.util.Date;
+import java.util.List;
 
 public class Post {
 
@@ -11,8 +12,9 @@ public class Post {
     private String contentImages;
     private int likeNum;
     private int replyNum;
+    private List<Message> messages;
 
-    public Post(String postId, User creator, String question, Date createTime, String contentImages, int likeNum, int replyNum) {
+    public Post(String postId, User creator, String question, Date createTime, String contentImages, int likeNum, int replyNum, List<Message> messages) {
         this.postId = postId;
         this.creator = creator;
         this.question = question;
@@ -20,6 +22,7 @@ public class Post {
         this.contentImages = contentImages;
         this.likeNum = likeNum;
         this.replyNum = replyNum;
+        this.messages = messages;
     }
 
     public String getPostId() {
@@ -76,5 +79,13 @@ public class Post {
 
     public void setReplyNum(int replyNum) {
         this.replyNum = replyNum;
+    }
+
+    public List<Message> getMessages() {
+        return messages;
+    }
+
+    public void setMessages(List<Message> messages) {
+        this.messages = messages;
     }
 }

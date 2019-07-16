@@ -261,7 +261,7 @@ public class ForumActivity extends AppCompatActivity {
             users.add(new User(i+"", profile_photos.get(i), "00000000", "张三", "北京大学", "软件工程", 2017));
         }
         for(int i = 0; i < 10; i++){
-            postList.add(new Post(i+"", users.get(i), "请问今天布置了啥作业？", new Date(), null, 10, 10));
+            postList.add(new Post(i+"", users.get(i), "请问今天布置了啥作业？", new Date(), null, 10, 10, null));
         }
     }
 
