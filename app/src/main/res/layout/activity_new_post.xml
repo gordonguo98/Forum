@@ -18,20 +18,18 @@
         app:layout_constraintTop_toTopOf="parent"
         app:navigationIcon="@drawable/ic_arrow_back_black_24dp"/>
 
-    <com.sendtion.xrichtext.RichTextEditor
-        android:id="@+id/et_new_content"
+    <EditText
+        android:id="@+id/activity_new_post_editext"
         android:layout_width="0dp"
-        android:layout_height="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
         android:layout_marginTop="16dp"
-        app:layout_constraintBottom_toBottomOf="parent"
+        android:layout_marginEnd="8dp"
+        android:background="@null"
+        android:maxLines="4"
+        android:hint="输入帖子内容"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/activity_new_post_toolbar"
-        app:rt_editor_image_bottom="10"
-        app:rt_editor_image_height="500"
-        app:rt_editor_text_color="#1F1F1F"
-        app:rt_editor_text_init_hint="在这里输入内容"
-        app:rt_editor_text_line_space="6dp"
-        app:rt_editor_text_size="16sp" />
+        app:layout_constraintTop_toBottomOf="@+id/activity_new_post_toolbar" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -2,41 +2,34 @@ package com.gordon.forum.Model;
 
 import android.graphics.Bitmap;
 
+import com.alibaba.fastjson.annotation.JSONField;
+
 public class User {
 
-    private String userId;
-    private Bitmap profile_photo;
+    @JSONField(name="email")
     private String phone_num;
+    @JSONField(name="name")
     private String name;
+    @JSONField(name="university")
     private String university;
+    @JSONField(name="major")
     private String major;
+    @JSONField(name="grade")
+    private String grade;
+    @JSONField(name="photo_url")
+    private String profile_photo;
+    @JSONField(serialize = false, deserialize = false)
+    private Bitmap profile_photo_bitmap;
 
-    private int grade;
+    private User(){}
 
-    public User(String userId, Bitmap profile_photo, String phone_num, String name, String university, String major, int grade) {
-        this.userId = userId;
-        this.profile_photo = profile_photo;
+    public User(String phone_num, String profile_photo, String name, String university, String major, String grade) {
         this.phone_num = phone_num;
+        this.profile_photo = profile_photo;
         this.name = name;
         this.university = university;
         this.major = major;
         this.grade = grade;
-    }
-
-    public String getUserId() {
-        return userId;
-    }
-
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
-
-    public Bitmap getProfile_photo() {
-        return profile_photo;
-    }
-
-    public void setProfile_photo(Bitmap profile_photo) {
-        this.profile_photo = profile_photo;
     }
 
     public String getPhone_num() {
@@ -45,6 +38,14 @@ public class User {
 
     public void setPhone_num(String phone_num) {
         this.phone_num = phone_num;
+    }
+
+    public String getProfile_photo() {
+        return profile_photo;
+    }
+
+    public void setProfile_photo(String profile_photo) {
+        this.profile_photo = profile_photo;
     }
 
     public String getName() {
@@ -71,11 +72,19 @@ public class User {
         this.major = major;
     }
 
-    public int getGrade() {
+    public String getGrade() {
         return grade;
     }
 
-    public void setGrade(int grade) {
+    public void setGrade(String grade) {
         this.grade = grade;
+    }
+
+    public Bitmap getProfile_photo_bitmap() {
+        return profile_photo_bitmap;
+    }
+
+    public void setProfile_photo_bitmap(Bitmap profile_photo_bitmap) {
+        this.profile_photo_bitmap = profile_photo_bitmap;
     }
 }

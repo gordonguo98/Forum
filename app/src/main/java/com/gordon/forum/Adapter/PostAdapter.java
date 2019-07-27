@@ -1,9 +1,6 @@
 package com.gordon.forum.Adapter;
 
-import android.app.Activity;
 import android.content.Context;
-import android.content.Intent;
-import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -14,16 +11,11 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.gordon.forum.Activity.PostActivity;
 import com.gordon.forum.Model.Post;
 import com.gordon.forum.R;
 import com.lzy.ninegrid.ImageInfo;
 import com.lzy.ninegrid.NineGridView;
 import com.lzy.ninegrid.preview.NineGridViewClickAdapter;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,7 +26,6 @@ public class PostAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> i
 
     private Context mContext;
     private List<Post> mList;
-    private static final String SERVER_ADDRESS_IMG = "192.168.1.0:8080";//服务器地址
 
     private OnItemClickListener mOnItemClickListener;
     private OnItemLongClickListener mOnItemLongClickListener;
@@ -66,30 +57,20 @@ public class PostAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> i
         MyViewHolder holder = (MyViewHolder) viewHolder;
         viewHolder.itemView.setTag(i);
         Post data = mList.get(i);
-        holder.profilePhoto.setImageBitmap(data.getCreator().getProfile_photo());
+        holder.profilePhoto.setImageBitmap(data.getCreator().getProfile_photo_bitmap());
         holder.userName.setText(data.getCreator().getName());
-        holder.createDate.setText(data.getCreateTime().toString());
+        holder.createDate.setText(data.getCreateTime());
         holder.content.setText(data.getQuestion());
         //生成九宫格图片
         ArrayList<ImageInfo> imageInfos = new ArrayList<>();
-        List<String> images = new ArrayList<>();
-        if (!TextUtils.isEmpty(data.getContentImages())) {  //有图片时
-            try {
-                JSONArray jSONArray = new JSONArray(data.getContentImages());
-                for (int j = 0; j < jSONArray.length(); j++) {
-                    JSONObject temp = new JSONObject(jSONArray.getString(j));
-                    images.add(SERVER_ADDRESS_IMG + temp.getString("path"));
-                }
-                for (String image : images) {
-                    ImageInfo info = new ImageInfo();
-                    info.setThumbnailUrl(image);
-                    info.setBigImageUrl(image);
-                    imageInfos.add(info);
-                }
-                holder.nineGridView.setAdapter(new NineGridViewClickAdapter(mContext, imageInfos));
-            } catch (JSONException e) {
-                e.printStackTrace();
+        if (data.getContentImages().size() != 0) {  //有图片时
+            for (String image : data.getContentImages()) {
+                ImageInfo info = new ImageInfo();
+                info.setThumbnailUrl(image);
+                info.setBigImageUrl(image);
+                imageInfos.add(info);
             }
+            holder.nineGridView.setAdapter(new NineGridViewClickAdapter(mContext, imageInfos));
         } else {
             Log.e("TEST", "onBindViewHolder: 无图");
             holder.nineGridView.setVisibility(View.GONE);
@@ -99,14 +80,6 @@ public class PostAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> i
         holder.replyNum.setText((data.getReplyNum()+""));
         holder.like.setImageResource(R.drawable.ic_favorite_border_black_24dp);
         holder.likeNum.setText((data.getLikeNum()+""));
-
-        holder.reply.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent intent = new Intent(view.getContext(), PostActivity.class);
-                ((Activity) view.getContext()).startActivity(intent);
-            }
-        });
 
     }
 

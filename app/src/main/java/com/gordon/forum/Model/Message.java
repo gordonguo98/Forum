@@ -1,17 +1,52 @@
 package com.gordon.forum.Model;
 
-import java.util.Date;
+import com.alibaba.fastjson.annotation.JSONField;
 
 public class Message {
 
-    private User sender;
-    private Date senderTime;
+    @JSONField(name="post_id")
+    private int postId;
+    @JSONField(name="message_id")
+    private int messageId;
+    @JSONField(name="content")
     private String content;
+    @JSONField(name="send_time")
+    private String sendTime;
+    @JSONField(name="sender")
+    private User sender;
 
-    public Message(User sender, Date senderTime, String content) {
+    public Message(){}
+
+    public Message(int postId, int messageId, User sender, String senderTime, String content) {
+        this.postId = postId;
+        this.messageId = messageId;
         this.sender = sender;
-        this.senderTime = senderTime;
+        this.sendTime = senderTime;
         this.content = content;
+    }
+
+    public int getPostId() {
+        return postId;
+    }
+
+    public void setPostId(int postId) {
+        this.postId = postId;
+    }
+
+    public int getMessageId() {
+        return messageId;
+    }
+
+    public void setMessageId(int messageId) {
+        this.messageId = messageId;
+    }
+
+    public String getSendTime() {
+        return sendTime;
+    }
+
+    public void setSendTime(String sendTime) {
+        this.sendTime = sendTime;
     }
 
     public User getSender() {
@@ -20,14 +55,6 @@ public class Message {
 
     public void setSender(User sender) {
         this.sender = sender;
-    }
-
-    public Date getSenderTime() {
-        return senderTime;
-    }
-
-    public void setSenderTime(Date senderTime) {
-        this.senderTime = senderTime;
     }
 
     public String getContent() {

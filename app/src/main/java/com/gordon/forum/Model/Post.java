@@ -1,20 +1,37 @@
 package com.gordon.forum.Model;
 
+import com.alibaba.fastjson.annotation.JSONField;
+
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
 public class Post {
 
-    private String postId;
-    private User creator;
+    @JSONField(name="post_id")
+    private int postId;
+    @JSONField(name="question")
     private String question;
-    private Date createTime;
-    private String contentImages;
-    private int likeNum;
+    @JSONField(name="reply_num")
     private int replyNum;
-    private List<Message> messages;
+    @JSONField(name="like_num")
+    private int likeNum;
+    @JSONField(name="create_time")
+    private String createTime;
+    @JSONField(name="course_id")
+    private int courseId;
+    @JSONField(name="creator")
+    private User creator;
+    @JSONField(name="content_images", serialize = false, deserialize = false)
+    private List<String> contentImages = new ArrayList<>();
 
-    public Post(String postId, User creator, String question, Date createTime, String contentImages, int likeNum, int replyNum, List<Message> messages) {
+
+    @JSONField(serialize = false, deserialize = false)
+    private List<Message> messages = new ArrayList<>();
+
+    private Post(){}
+
+    public Post(int postId, User creator, String question, String createTime, List<String> contentImages, int likeNum, int replyNum, List<Message> messages) {
         this.postId = postId;
         this.creator = creator;
         this.question = question;
@@ -25,11 +42,11 @@ public class Post {
         this.messages = messages;
     }
 
-    public String getPostId() {
+    public int getPostId() {
         return postId;
     }
 
-    public void setPostId(String postId) {
+    public void setPostId(int postId) {
         this.postId = postId;
     }
 
@@ -49,19 +66,19 @@ public class Post {
         this.question = question;
     }
 
-    public Date getCreateTime() {
+    public String getCreateTime() {
         return createTime;
     }
 
-    public void setCreateTime(Date createTime) {
+    public void setCreateTime(String createTime) {
         this.createTime = createTime;
     }
 
-    public String getContentImages() {
+    public List<String> getContentImages() {
         return contentImages;
     }
 
-    public void setContentImages(String contentImages) {
+    public void setContentImages(List<String> contentImages) {
         this.contentImages = contentImages;
     }
 
@@ -79,6 +96,14 @@ public class Post {
 
     public void setReplyNum(int replyNum) {
         this.replyNum = replyNum;
+    }
+
+    public int getCourseId() {
+        return courseId;
+    }
+
+    public void setCourseId(int courseId) {
+        this.courseId = courseId;
     }
 
     public List<Message> getMessages() {

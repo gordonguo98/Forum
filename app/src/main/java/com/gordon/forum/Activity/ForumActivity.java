@@ -1,5 +1,7 @@
 package com.gordon.forum.Activity;
 
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -7,14 +9,14 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import androidx.appcompat.widget.Toolbar;
 
 import android.app.AlertDialog;
-import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Rect;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.Menu;
@@ -26,37 +28,47 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONException;
+import com.alibaba.fastjson.JSONObject;
 import com.gordon.forum.Adapter.PostAdapter;
 import com.gordon.forum.Model.Post;
-import com.gordon.forum.Model.User;
 import com.gordon.forum.R;
+import com.gordon.forum.Util.BitmapUtil;
+import com.gordon.forum.Util.UrlHelper;
 import com.lzy.ninegrid.NineGridView;
 import com.squareup.picasso.Picasso;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import okhttp3.Call;
 import okhttp3.Callback;
+import okhttp3.FormBody;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import okhttp3.ResponseBody;
 
 public class ForumActivity extends AppCompatActivity {
 
-    private String courseId;
+    private int courseId;
     private String userId;
-    private String courseName;
-    private int postNum;
 
     List<Post> postList = new ArrayList<>();
 
-    String url = "http://image.baidu.com/search/index?tn=baiduimage&ct=201326592&lm=-1&cl=2&ie="+
-            "gb18030&word=%CD%BC%C6%AC%20%CD%B7%CF%F1&fr=ala&oriquery=%E5%9B%BE%E7%89%87%20%E5%"+
-            "A4%B4%E5%83%8F&ala=1&alatpl=portait&pos=0";
+    private SwipeRefreshLayout refreshLayout;
+    private RecyclerView recyclerView;
+    private PostAdapter postAdapter;
+
+    private MyHandler myHandler;
+
+    private static final int UPDATE_POST_LIST = 100;
+    private static final int STOP_REFRESHING = 101;
+    private static final int DELETE_POST = 102;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -67,7 +79,9 @@ public class ForumActivity extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.activity_forum_toolbar);
         toolbar.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
         setSupportActionBar(toolbar);
-        getSupportActionBar().setDisplayShowTitleEnabled(false);
+        ActionBar actionBar = getSupportActionBar();
+        if(null != actionBar)
+            actionBar.setDisplayShowTitleEnabled(false);
         Window window = getWindow();
         window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
         window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
@@ -75,14 +89,15 @@ public class ForumActivity extends AppCompatActivity {
 
         Intent intent = getIntent();
         if(null != intent){
-            courseId = intent.getStringExtra("courseId");
+            courseId = intent.getIntExtra("courseId", -1);
             userId = intent.getStringExtra("userId");
             //添加中间标题
-            addMiddleTitle(this, courseId, toolbar);
+            addMiddleTitle(this, ""+courseId, toolbar);
         }
-        //getData(url);
+
+        initView();
         initImgLoadingOptions();
-        initPostList();
+        getPost();
     }
 
     @Override
@@ -122,37 +137,174 @@ public class ForumActivity extends AppCompatActivity {
 
     }
 
-    private void getData(String url){
+    private void getData(final String url){
 
-        try {
-            //从服务器获取数据
-            OkHttpClient okHttpClient = new OkHttpClient.Builder().readTimeout(5, TimeUnit.SECONDS).build();
-            final Request request = new Request.Builder()
-                    .url(url)
-                    .get()//默认就是GET请求，可以不写
-                    .build();
-            Call call = okHttpClient.newCall(request);
-            call.enqueue(new Callback() {
-                @Override
-                public void onFailure(Call call, IOException e) {
-                    Log.e("TEST", "onFailure: 请求失败");
-                }
+        this.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
 
-                @Override
-                public void onResponse(Call call, Response response) throws IOException {
-                    Log.d("TEST", "onResponse: " + response.body().string());
-                }
-            });
-            //等待请求线程，否则主线程结束无法看到请求结果
-            Thread.currentThread().join(5000);
-        }catch(Exception e){
-            e.printStackTrace();
-        }
+                OkHttpClient client = new OkHttpClient();
+                Request request = new Request.Builder()
+                        .url(url)
+                        .get()
+                        .build();
+                client.newCall(request).enqueue(new Callback() {
+
+                    @Override
+                    public void onFailure(@NotNull Call call, @NotNull IOException e) {
+                        Log.e("getData: ", "onFailure: " + e.toString());
+                    }
+
+                    @Override
+                    public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
+                        ResponseBody responseBody = response.body();
+                        String body = null;
+                        if(null != responseBody)
+                            body = responseBody.string();
+                        if(null == body)
+                            Log.e("getData: ", "onResponse: responsebody is null!");
+                        else {
+                            Log.e("getData: ", "onResponse: responsebody is " + body);
+                            try {
+                                JSONObject jsonObject = JSON.parseObject(body);
+                                int code = (int) jsonObject.get("code");
+                                String msg = (String) jsonObject.get("msg");
+                                int record_num = (int) jsonObject.get("record_num");
+                                Log.i("test", "onResponse: "+code+" "+msg+" "+record_num);
+                                postList.clear();
+                                for(int i = 1; i <= record_num; i++){
+                                    JSONObject post_json = (JSONObject) jsonObject.get("post_" + i);
+                                    Log.i("test", "onResponse: "+post_json);
+                                    Post newPost = JSON.toJavaObject(post_json, Post.class);
+                                    Log.i("test", "onResponse: "+newPost.getQuestion());
+                                    BitmapUtil bitmapUtil = new BitmapUtil();
+                                    newPost.getCreator().setProfile_photo_bitmap(bitmapUtil.getProfilePhoto(newPost.getCreator().getProfile_photo()));
+                                    postList.add(newPost);
+                                    Message message = new Message();
+                                    message.what = UPDATE_POST_LIST;
+                                    myHandler.sendMessage(message);
+                                    Log.i("test", "onResponse: "+newPost.getCreateTime());
+                                }
+                                Message message = new Message();
+                                message.what = STOP_REFRESHING;
+                                myHandler.sendMessage(message);
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                                Log.e("test", e.toString());
+                            }
+                        }
+                    }
+                });
+
+            }
+        });
+
     }
 
-    public boolean deletePost() {
-        //此处处理删除帖子逻辑，由于需要后台服务，故暂时不实现
-        return true;
+    public void deletePost(final String postId, final int position) {
+
+        this.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+
+                OkHttpClient client = new OkHttpClient();
+                FormBody.Builder formBody = new FormBody.Builder();
+                formBody.add("method", "delete");
+                formBody.add("post_id", postId);
+                final Request request = new Request.Builder()
+                        .url(UrlHelper.URL_FOR_DELETING_POST)
+                        .post(formBody.build())
+                        .build();
+
+                client.newCall(request).enqueue(new Callback() {
+
+                    @Override
+                    public void onFailure(@NotNull Call call, @NotNull IOException e) {
+                        Log.e("test", "onFailure: 删除帖子失败");
+                    }
+
+                    @Override
+                    public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
+                        Log.e("test", "onFailure: 删除帖子成功");
+                        android.os.Message message = new android.os.Message();
+                        message.what = DELETE_POST;
+                        message.arg1 = position;
+                        myHandler.sendMessage(message);
+                    }
+                });
+
+            }
+
+        });
+
+    }
+
+    private void initView() {
+
+        refreshLayout = (SwipeRefreshLayout) findViewById(R.id.refresh_post_list);
+        refreshLayout.setColorSchemeResources(R.color.colorPrimary);
+        refreshLayout.setProgressBackgroundColorSchemeResource(android.R.color.white);
+
+        recyclerView = (RecyclerView) findViewById(R.id.post_list);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+
+        postAdapter = new PostAdapter(this, postList);
+        postAdapter.setOnItemClickListener(new PostAdapter.OnItemClickListener() {
+            @Override
+            public void onItemClick(View view, int position) {
+                String post_json = JSON.toJSONString(postList.get(position));
+                Toast.makeText(view.getContext(), "传递前json: " + post_json, Toast.LENGTH_LONG).show();
+                Intent intent = new Intent(ForumActivity.this, PostActivity.class);
+                intent.putExtra("post", post_json);
+                intent.putExtra("user_id", userId);
+                startActivity(intent);
+            }
+        });
+        postAdapter.setOnItemLongClickListener(new PostAdapter.OnItemLongClickListener() {
+            @Override
+            public void onItemLongClick(View view, final int position) {
+
+                if(postList.get(position).getCreator().getPhone_num().equals(userId)){
+                    //如果帖子是自己发布的，则可以删除
+                    final AlertDialog.Builder normalDialog = new AlertDialog.Builder(ForumActivity.this);
+                    normalDialog.setIcon(R.drawable.ic_delete_forever_black_24dp);
+                    normalDialog.setTitle("删除帖子");
+                    normalDialog.setMessage("确认删除?");
+                    normalDialog.setPositiveButton("确定",
+                            new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    //删除帖子
+                                    deletePost(postList.get(position).getPostId()+"", position);
+                                }
+                            });
+                    normalDialog.setNegativeButton("取消",
+                            new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    //取消删除
+                                }
+                            });
+                    // 显示
+                    normalDialog.show();
+                }
+
+            }
+        });
+
+        recyclerView.addItemDecoration(new SpacesItemDecoration(14));//设定间隔
+        recyclerView.setAdapter(postAdapter);
+
+        refreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                //下拉刷新帖子列表
+                getPost();
+                postAdapter.notifyDataSetChanged();
+            }
+        });
+
+        myHandler = new MyHandler(postAdapter, refreshLayout, postList);
     }
 
     private void initImgLoadingOptions(){
@@ -177,97 +329,45 @@ public class ForumActivity extends AppCompatActivity {
         NineGridView.setImageLoader(new PicassoImageLoader());
     }
 
-    private void initPostList(){
-
-        //测试数据，正常情况下应通过网络请求获得
-        createTestData();
-
-        final SwipeRefreshLayout refreshLayout = (SwipeRefreshLayout) findViewById(R.id.refresh_post_list);
-        refreshLayout.setColorSchemeResources(R.color.colorPrimary);
-        refreshLayout.setProgressBackgroundColorSchemeResource(android.R.color.white);
-
-        RecyclerView recyclerView = (RecyclerView) findViewById(R.id.post_list);
-        LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this);
-        recyclerView.setLayoutManager(linearLayoutManager);
-
-        final PostAdapter postAdapter = new PostAdapter(this, postList);
-        postAdapter.setOnItemClickListener(new PostAdapter.OnItemClickListener() {
-            @Override
-            public void onItemClick(View view, int position) {
-                Toast.makeText(view.getContext(), "position: " + position, Toast.LENGTH_LONG).show();
-                Intent intent = new Intent(ForumActivity.this, PostActivity.class);
-                intent.putExtra("postId", postList.get(position).getPostId());
-                startActivity(intent);
-            }
-        });
-        postAdapter.setOnItemLongClickListener(new PostAdapter.OnItemLongClickListener() {
-            @Override
-            public void onItemLongClick(View view, final int position) {
-                //if(postList.get(position).getCreator().getUserId().equals(userId)){
-                    //如果帖子是自己发布的，则可以删除
-                //}
-
-                //为测试，以下代码不考虑帖子是不是本人的
-                final AlertDialog.Builder normalDialog = new AlertDialog.Builder(ForumActivity.this);
-                normalDialog.setIcon(R.drawable.ic_delete_forever_black_24dp);
-                normalDialog.setTitle("删除帖子");
-                normalDialog.setMessage("确认删除?");
-                normalDialog.setPositiveButton("确定",
-                        new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                                //删除帖子
-                                if(deletePost()) {
-                                    postList.remove(position);
-                                    postAdapter.notifyDataSetChanged();
-                                }
-                                else
-                                    Toast.makeText(ForumActivity.this, "删除失败", Toast.LENGTH_LONG).show();
-                            }
-                        });
-                normalDialog.setNegativeButton("取消",
-                        new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                                //取消删除
-                            }
-                        });
-                // 显示
-                normalDialog.show();
-            }
-        });
-
-        recyclerView.addItemDecoration(new SpacesItemDecoration(14));//设定间隔
-        recyclerView.setAdapter(postAdapter);
-
-        refreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
-            @Override
-            public void onRefresh() {
-                //下拉刷新帖子列表
-                //getData(url);
-                postAdapter.notifyDataSetChanged();
-                refreshLayout.setRefreshing(false);
-            }
-        });
+    private void getPost(){
+        getData(UrlHelper.URL_FOR_GETTING_POST + "?" + "course_id=" + 1);
     }
 
-    private void createTestData(){
-        List<Bitmap> profile_photos = new ArrayList<>();
-        for(int i = 1; i <= 10; i++){
-            profile_photos.add(Bitmap.createBitmap(BitmapFactory.decodeStream(getClass().getResourceAsStream("/res/drawable/p" + i + ".png"))));
+    static class MyHandler extends Handler{
+
+        private PostAdapter postAdapter;
+        private SwipeRefreshLayout refreshLayout;
+        private List<Post> postList;
+
+        public MyHandler(PostAdapter postAdapter, SwipeRefreshLayout refreshLayout, List<Post> postList){
+            this.postAdapter = postAdapter;
+            this.refreshLayout = refreshLayout;
+            this.postList = postList;
         }
-        List<User> users = new ArrayList<>();
-        for(int i = 0; i < 10; i++){
-            users.add(new User(i+"", profile_photos.get(i), "00000000", "张三", "北京大学", "软件工程", 2017));
-        }
-        for(int i = 0; i < 10; i++){
-            postList.add(new Post(i+"", users.get(i), "请问今天布置了啥作业？", new Date(), null, 10, 10, null));
+
+        @Override
+        public void handleMessage(@NonNull Message msg) {
+            if(msg.what == UPDATE_POST_LIST)
+                postAdapter.notifyDataSetChanged();
+            switch(msg.what){
+                case UPDATE_POST_LIST:
+                    postAdapter.notifyDataSetChanged();
+                    break;
+                case STOP_REFRESHING:
+                    refreshLayout.setRefreshing(false);
+                    break;
+                case DELETE_POST:
+                    postList.remove(msg.arg1);
+                    postAdapter.notifyItemRemoved(msg.arg1);
+                    break;
+            }
         }
     }
 
 }
 
 class SpacesItemDecoration extends RecyclerView.ItemDecoration {
+
     private int space;
 
     public SpacesItemDecoration(int space) {
@@ -275,13 +375,11 @@ class SpacesItemDecoration extends RecyclerView.ItemDecoration {
     }
 
     @Override
-    public void getItemOffsets(Rect outRect, View view,
-                               RecyclerView parent, RecyclerView.State state) {
+    public void getItemOffsets(@NonNull Rect outRect, @NonNull View view,
+                               @NonNull RecyclerView parent, @NonNull RecyclerView.State state) {
         outRect.left = space;
         outRect.right = space;
         outRect.bottom = space;
-
-        // Add top margin only for the first item to avoid double space between items
         if (parent.getChildLayoutPosition(view) == 0)
             outRect.top = space;
     }

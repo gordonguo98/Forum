@@ -26,6 +26,8 @@ public class CommentDialogFragment extends DialogFragment implements View.OnClic
     private ImageView photoButton;
     private ImageView sendButton;
 
+    private OnSendListener onSendListener;
+
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
 
@@ -66,10 +68,20 @@ public class CommentDialogFragment extends DialogFragment implements View.OnClic
                 break;
             case R.id.image_btn_comment_send:
                 Toast.makeText(getActivity(), commentEditText.getText().toString(), Toast.LENGTH_SHORT).show();
+                if(null != onSendListener)
+                    onSendListener.OnSend(commentEditText.getText().toString());
                 dismiss();
                 break;
             default:
                 break;
         }
+    }
+
+    public void setOnSendListener(OnSendListener onSendListener) {
+        this.onSendListener = onSendListener;
+    }
+
+    public interface OnSendListener{
+        public void OnSend(String content);
     }
 }

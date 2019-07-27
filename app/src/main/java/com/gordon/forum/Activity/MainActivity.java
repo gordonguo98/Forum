@@ -32,7 +32,7 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View view) {
                 if(courseIdText.getText() != null && userIdText.getText() != null){
                     Intent intent = new Intent(MainActivity.this, ForumActivity.class);
-                    intent.putExtra("courseId", courseIdText.getText().toString());
+                    intent.putExtra("courseId", Integer.parseInt(courseIdText.getText().toString()));
                     intent.putExtra("userId", userIdText.getText().toString());
                     startActivity(intent);
                 }
