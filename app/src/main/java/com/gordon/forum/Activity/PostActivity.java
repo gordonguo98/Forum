@@ -34,6 +34,7 @@ import com.gordon.forum.Model.Message;
 import com.gordon.forum.Model.Post;
 import com.gordon.forum.R;
 import com.gordon.forum.Util.BitmapUtil;
+import com.gordon.forum.Util.GlideImageLoader;
 import com.gordon.forum.Util.UrlHelper;
 import com.lzy.ninegrid.ImageInfo;
 import com.lzy.ninegrid.NineGridView;
@@ -237,7 +238,7 @@ public class PostActivity extends AppCompatActivity implements View.OnClickListe
 
                             @Override
                             public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
-                                Log.e("test", "onFailure: 点赞成功");
+                                Log.e("test", "onResponse: 点赞成功");
                                 android.os.Message message = new android.os.Message();
                                 message.what = POSTING_LIKE;
                                 myHandler.sendMessage(message);
@@ -273,7 +274,7 @@ public class PostActivity extends AppCompatActivity implements View.OnClickListe
             }
         }
 
-        NineGridView.setImageLoader(new PicassoImageLoader());
+        NineGridView.setImageLoader(new GlideImageLoader());
     }
 
     private void getMessages(){
@@ -325,9 +326,6 @@ public class PostActivity extends AppCompatActivity implements View.OnClickListe
                                         myHandler.sendMessage(message);
                                         Log.i("test", "onResponse: " + newMessage.getSendTime());
                                     }
-                                    android.os.Message message = new android.os.Message();
-                                    message.what = STOP_REFRESHING;
-                                    myHandler.sendMessage(message);
                                 }
                             } catch (JSONException e) {
                                 e.printStackTrace();
@@ -336,7 +334,9 @@ public class PostActivity extends AppCompatActivity implements View.OnClickListe
                         }
                     }
                 });
-
+                android.os.Message message = new android.os.Message();
+                message.what = STOP_REFRESHING;
+                myHandler.sendMessage(message);
             }
         });
     }
@@ -366,7 +366,7 @@ public class PostActivity extends AppCompatActivity implements View.OnClickListe
 
                     @Override
                     public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
-                        Log.e("test", "onFailure: 回复成功");
+                        Log.e("test", "onResponse: 回复成功");
                         android.os.Message message = new android.os.Message();
                         message.what = AFTER_SENDING;
                         myHandler.sendMessage(message);

@@ -3,7 +3,6 @@ package com.gordon.forum.Model;
 import com.alibaba.fastjson.annotation.JSONField;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 public class Post {
@@ -22,7 +21,7 @@ public class Post {
     private int courseId;
     @JSONField(name="creator")
     private User creator;
-    @JSONField(name="content_images", serialize = false, deserialize = false)
+    @JSONField(name="content_images")
     private List<String> contentImages = new ArrayList<>();
 
 

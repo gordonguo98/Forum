@@ -27,9 +27,30 @@
         android:layout_marginEnd="8dp"
         android:background="@null"
         android:maxLines="4"
+        android:minLines="4"
         android:hint="输入帖子内容"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/activity_new_post_toolbar" />
+
+    <GridView
+        android:id="@+id/activity_new_post_gridView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"
+        android:columnWidth="90dp"
+        android:gravity="center"
+        android:horizontalSpacing="4dp"
+        android:numColumns="3"
+        android:scrollbars="none"
+        android:stretchMode="columnWidth"
+        android:verticalSpacing="4dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/activity_new_post_editext" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -3,15 +3,18 @@ package com.gordon.forum.Activity;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import androidx.appcompat.widget.Toolbar;
 
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Rect;
 import android.os.Bundle;
@@ -70,6 +73,11 @@ public class ForumActivity extends AppCompatActivity {
     private static final int STOP_REFRESHING = 101;
     private static final int DELETE_POST = 102;
 
+    private static final int REQUEST_EXTERNAL_STORAGE = 1;
+    private static String[] PERMISSIONS_STORAGE = {
+            "android.permission.READ_EXTERNAL_STORAGE",
+            "android.permission.WRITE_EXTERNAL_STORAGE" };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
@@ -95,6 +103,8 @@ public class ForumActivity extends AppCompatActivity {
             addMiddleTitle(this, ""+courseId, toolbar);
         }
 
+        verifyStoragePermissions(this);
+
         initView();
         initImgLoadingOptions();
         getPost();
@@ -117,6 +127,8 @@ public class ForumActivity extends AppCompatActivity {
 
         if (item.getItemId() == R.id.action_new_post) {
             Intent intent = new Intent(ForumActivity.this, NewPostActivity.class);
+            intent.putExtra("email", userId);
+            intent.putExtra("course_id", courseId);
             startActivity(intent);
             return true;
         }
@@ -180,6 +192,7 @@ public class ForumActivity extends AppCompatActivity {
                                     BitmapUtil bitmapUtil = new BitmapUtil();
                                     newPost.getCreator().setProfile_photo_bitmap(bitmapUtil.getProfilePhoto(newPost.getCreator().getProfile_photo()));
                                     postList.add(newPost);
+                                    Log.e("测试", "测试图片下载: "+newPost.getContentImages());
                                     Message message = new Message();
                                     message.what = UPDATE_POST_LIST;
                                     myHandler.sendMessage(message);
@@ -225,7 +238,7 @@ public class ForumActivity extends AppCompatActivity {
 
                     @Override
                     public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
-                        Log.e("test", "onFailure: 删除帖子成功");
+                        Log.e("test", "onResponse: 删除帖子成功");
                         android.os.Message message = new android.os.Message();
                         message.what = DELETE_POST;
                         message.arg1 = position;
@@ -361,6 +374,21 @@ public class ForumActivity extends AppCompatActivity {
                     postAdapter.notifyItemRemoved(msg.arg1);
                     break;
             }
+        }
+    }
+
+    public static void verifyStoragePermissions(Activity activity) {
+
+        try {
+            //检测是否有写的权限
+            int permission = ActivityCompat.checkSelfPermission(activity,
+                    "android.permission.WRITE_EXTERNAL_STORAGE");
+            if (permission != PackageManager.PERMISSION_GRANTED) {
+                // 没有写的权限，去申请写的权限，会弹出对话框
+                ActivityCompat.requestPermissions(activity, PERMISSIONS_STORAGE,REQUEST_EXTERNAL_STORAGE);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
