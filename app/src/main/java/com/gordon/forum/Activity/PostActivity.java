@@ -210,7 +210,7 @@ public class PostActivity extends AppCompatActivity implements View.OnClickListe
         messageAdapter = new MessageAdapter(mContext, messagesList);
         commentsRV.setAdapter(messageAdapter);
         commentsRV.setHasFixedSize(true);
-        commentsRV.setNestedScrollingEnabled(false);
+        //commentsRV.setNestedScrollingEnabled(false);
 
         like.setOnClickListener(new View.OnClickListener() {
             @Override

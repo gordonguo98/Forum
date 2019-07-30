@@ -38,6 +38,7 @@ import com.gordon.forum.Adapter.PostAdapter;
 import com.gordon.forum.Model.Post;
 import com.gordon.forum.R;
 import com.gordon.forum.Util.BitmapUtil;
+import com.gordon.forum.Util.GlideImageLoader;
 import com.gordon.forum.Util.UrlHelper;
 import com.lzy.ninegrid.NineGridView;
 import com.squareup.picasso.Picasso;
@@ -339,7 +340,7 @@ public class ForumActivity extends AppCompatActivity {
             }
         }
 
-        NineGridView.setImageLoader(new PicassoImageLoader());
+        NineGridView.setImageLoader(new GlideImageLoader());
     }
 
     private void getPost(){
