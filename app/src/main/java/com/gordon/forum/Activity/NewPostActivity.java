@@ -54,8 +54,10 @@ public class NewPostActivity extends AppCompatActivity {
 
     private String courseId;
     private String userId;
+    private boolean finishPosting = false;
 
     private static final int REQUEST_CODE_CHOOSE = 3;
+    private static final int REQUEST_FOR_RETURN = 103;
 
     private ArrayList<ImageItem> images = new ArrayList<>();
     //adapter是核心，添加按钮的处理删除的处理都在里面，后面会说，别急
@@ -112,6 +114,10 @@ public class NewPostActivity extends AppCompatActivity {
 
         if (item.getItemId() == R.id.action_publish_post) {
             publishPost();
+            while(finishPosting);
+            Intent intent = new Intent();
+            intent.putExtra("IsSuccess", 1);
+            setResult(REQUEST_FOR_RETURN, intent);
             finish();
             return true;
         }
@@ -169,12 +175,14 @@ public class NewPostActivity extends AppCompatActivity {
             @Override
             public void onFailure(@NotNull Call call, @NotNull IOException e) {
                 Log.e("test", "onFailure: 发帖失败");
+                finishPosting = true;
             }
 
             @Override
             public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
                 Log.e("test", "onResponse: 发帖成功");
                 Log.e("test", "onResponse: 返回内容：" + response.body().string());
+                finishPosting = true;
             }
         });
 

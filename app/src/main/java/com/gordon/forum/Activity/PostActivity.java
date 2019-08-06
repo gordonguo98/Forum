@@ -9,7 +9,9 @@ import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.hardware.biometrics.BiometricManager;
@@ -29,6 +31,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONException;
 import com.alibaba.fastjson.JSONObject;
 import com.gordon.forum.Adapter.MessageAdapter;
+import com.gordon.forum.Database.LikeDao;
 import com.gordon.forum.Fragment.CommentDialogFragment;
 import com.gordon.forum.Model.Message;
 import com.gordon.forum.Model.Post;
@@ -212,9 +215,46 @@ public class PostActivity extends AppCompatActivity implements View.OnClickListe
         commentsRV.setHasFixedSize(true);
         //commentsRV.setNestedScrollingEnabled(false);
 
+        messageAdapter.setOnMessageClickListener(new MessageAdapter.OnMessageClickListener() {
+            @Override
+            public void onMessageClick(final int position) {
+                if(messagesList.get(position).getSender().getPhone_num().equals(userId)){
+                    //如果回复是自己发送的,则可以删除
+                    final AlertDialog.Builder normalDialog = new AlertDialog.Builder(PostActivity.this);
+                    normalDialog.setIcon(R.drawable.ic_delete_forever_black_24dp);
+                    normalDialog.setTitle("删除评论");
+                    normalDialog.setMessage("确认删除?");
+                    normalDialog.setPositiveButton("确定",
+                            new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    //删除评论
+                                    deleteMessage(messagesList.get(position).getMessageId(), position);
+                                }
+                            });
+                    normalDialog.setNegativeButton("取消",
+                            new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    //取消删除
+                                }
+                            });
+                    // 显示
+                    normalDialog.show();
+                }
+            }
+        });
+
         like.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+
+                LikeDao likeDao = new LikeDao(mContext);
+                //已经赞过
+                if(likeDao.queryLike(userId, postId)){
+                    //取消赞
+                    //TODO
+                }
 
                 mContext.runOnUiThread(new Runnable() {
                     @Override
@@ -242,6 +282,9 @@ public class PostActivity extends AppCompatActivity implements View.OnClickListe
                                 android.os.Message message = new android.os.Message();
                                 message.what = POSTING_LIKE;
                                 myHandler.sendMessage(message);
+                                LikeDao likeDao = new LikeDao(mContext);
+                                //将点赞信息存入数据库
+                                likeDao.insertLike(userId, postId);
                             }
                         });
 
@@ -375,6 +418,10 @@ public class PostActivity extends AppCompatActivity implements View.OnClickListe
             }
         });
 
+    }
+
+    private void deleteMessage(int messageId, int position){
+        //TODO
     }
 
     static class MyHandler extends Handler{

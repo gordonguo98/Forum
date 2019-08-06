@@ -1,6 +1,7 @@
 package com.gordon.forum.Activity;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -73,6 +74,7 @@ public class ForumActivity extends AppCompatActivity {
     private static final int UPDATE_POST_LIST = 100;
     private static final int STOP_REFRESHING = 101;
     private static final int DELETE_POST = 102;
+    private static final int REQUEST_FOR_NEWPOSTACTIVITY = 103;
 
     private static final int REQUEST_EXTERNAL_STORAGE = 1;
     private static String[] PERMISSIONS_STORAGE = {
@@ -130,7 +132,7 @@ public class ForumActivity extends AppCompatActivity {
             Intent intent = new Intent(ForumActivity.this, NewPostActivity.class);
             intent.putExtra("email", userId);
             intent.putExtra("course_id", courseId);
-            startActivity(intent);
+            startActivityForResult(intent, REQUEST_FOR_NEWPOSTACTIVITY);
             return true;
         }
 
@@ -372,7 +374,7 @@ public class ForumActivity extends AppCompatActivity {
                     break;
                 case DELETE_POST:
                     postList.remove(msg.arg1);
-                    postAdapter.notifyItemRemoved(msg.arg1);
+                    postAdapter.notifyDataSetChanged();
                     break;
             }
         }
@@ -393,6 +395,16 @@ public class ForumActivity extends AppCompatActivity {
         }
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        if(resultCode == REQUEST_FOR_NEWPOSTACTIVITY) {
+            int isSuccess = 0;
+            if (null != data)
+                isSuccess = data.getIntExtra("IsSuccess", 0);
+            if (isSuccess == 1)
+                getPost();
+        }
+    }
 }
 
 class SpacesItemDecoration extends RecyclerView.ItemDecoration {

@@ -21,6 +21,7 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
     Context mContext;
     private List<Message> mList;
+    private OnMessageClickListener onMessageClickListener;
 
     public MessageAdapter(Context mContext, List<Message> list){
         this.mContext = mContext;
@@ -40,9 +41,17 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
     }
 
     @Override
-    public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
+    public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, final int position) {
         MyViewHolder myViewHolder = (MyViewHolder) holder;
         myViewHolder.itemView.setTag(position);
+        myViewHolder.itemView.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View view) {
+                if(null != onMessageClickListener)
+                    onMessageClickListener.onMessageClick(position);
+                return true;
+            }
+        });
         Message data = mList.get(position);
         myViewHolder.profilePhoto.setImageBitmap(data.getSender().getProfile_photo_bitmap());
         myViewHolder.userName.setText(data.getSender().getName());
@@ -64,5 +73,13 @@ public class MessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             createDate = itemView.findViewById(R.id.message_create_date);
             content = itemView.findViewById(R.id.message_content);
         }
+    }
+
+    public void setOnMessageClickListener(OnMessageClickListener onMessageClickListener){
+        this.onMessageClickListener = onMessageClickListener;
+    }
+
+    public interface OnMessageClickListener{
+        public void onMessageClick(int position);
     }
 }
