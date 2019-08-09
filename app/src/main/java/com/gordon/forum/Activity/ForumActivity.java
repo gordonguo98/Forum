@@ -154,64 +154,52 @@ public class ForumActivity extends AppCompatActivity {
 
     private void getData(final String url){
 
-        this.runOnUiThread(new Runnable() {
+        OkHttpClient client = new OkHttpClient();
+        Request request = new Request.Builder()
+                .url(url)
+                .get()
+                .build();
+        client.newCall(request).enqueue(new Callback() {
+
             @Override
-            public void run() {
+            public void onFailure(@NotNull Call call, @NotNull IOException e) {
+                Log.e("getData: ", "onFailure: " + e.toString());
+            }
 
-                OkHttpClient client = new OkHttpClient();
-                Request request = new Request.Builder()
-                        .url(url)
-                        .get()
-                        .build();
-                client.newCall(request).enqueue(new Callback() {
-
-                    @Override
-                    public void onFailure(@NotNull Call call, @NotNull IOException e) {
-                        Log.e("getData: ", "onFailure: " + e.toString());
-                    }
-
-                    @Override
-                    public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
-                        ResponseBody responseBody = response.body();
-                        String body = null;
-                        if(null != responseBody)
-                            body = responseBody.string();
-                        if(null == body)
-                            Log.e("getData: ", "onResponse: responsebody is null!");
-                        else {
-                            Log.e("getData: ", "onResponse: responsebody is " + body);
-                            try {
-                                JSONObject jsonObject = JSON.parseObject(body);
-                                int code = (int) jsonObject.get("code");
-                                String msg = (String) jsonObject.get("msg");
-                                int record_num = (int) jsonObject.get("record_num");
-                                Log.i("test", "onResponse: "+code+" "+msg+" "+record_num);
-                                postList.clear();
-                                for(int i = 1; i <= record_num; i++){
-                                    JSONObject post_json = (JSONObject) jsonObject.get("post_" + i);
-                                    Log.i("test", "onResponse: "+post_json);
-                                    Post newPost = JSON.toJavaObject(post_json, Post.class);
-                                    Log.i("test", "onResponse: "+newPost.getQuestion());
-                                    BitmapUtil bitmapUtil = new BitmapUtil();
-                                    newPost.getCreator().setProfile_photo_bitmap(bitmapUtil.getProfilePhoto(newPost.getCreator().getProfile_photo()));
-                                    postList.add(newPost);
-                                    Log.e("测试", "测试图片下载: "+newPost.getContentImages());
-                                    Message message = new Message();
-                                    message.what = UPDATE_POST_LIST;
-                                    myHandler.sendMessage(message);
-                                    Log.i("test", "onResponse: "+newPost.getCreateTime());
-                                }
-                                Message message = new Message();
-                                message.what = STOP_REFRESHING;
-                                myHandler.sendMessage(message);
-                            } catch (JSONException e) {
-                                e.printStackTrace();
-                                Log.e("test", e.toString());
-                            }
+            @Override
+            public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
+                ResponseBody responseBody = response.body();
+                String body = null;
+                if(null != responseBody)
+                    body = responseBody.string();
+                if(null == body)
+                    Log.e("getData: ", "onResponse: responsebody is null!");
+                else {
+                    Log.e("getData: ", "onResponse: responsebody is " + body);
+                    try {
+                        JSONObject jsonObject = JSON.parseObject(body);
+                        int code = (int) jsonObject.get("code");
+                        String msg = (String) jsonObject.get("msg");
+                        int record_num = (int) jsonObject.get("record_num");
+                        postList.clear();
+                        for(int i = 1; i <= record_num; i++){
+                            JSONObject post_json = (JSONObject) jsonObject.get("post_" + i);
+                            Post newPost = JSON.toJavaObject(post_json, Post.class);
+                            BitmapUtil bitmapUtil = new BitmapUtil();
+                            newPost.getCreator().setProfile_photo_bitmap(bitmapUtil.getProfilePhoto(newPost.getCreator().getProfile_photo()));
+                            postList.add(newPost);
+                            Message message = new Message();
+                            message.what = UPDATE_POST_LIST;
+                            myHandler.sendMessage(message);
                         }
+                        Message message = new Message();
+                        message.what = STOP_REFRESHING;
+                        myHandler.sendMessage(message);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                        Log.e("test", e.toString());
                     }
-                });
-
+                }
             }
         });
 
@@ -219,38 +207,31 @@ public class ForumActivity extends AppCompatActivity {
 
     public void deletePost(final String postId, final int position) {
 
-        this.runOnUiThread(new Runnable() {
+        OkHttpClient client = new OkHttpClient();
+        FormBody.Builder formBody = new FormBody.Builder();
+        formBody.add("method", "delete");
+        formBody.add("post_id", postId);
+        formBody.add("email", userId);
+        final Request request = new Request.Builder()
+                .url(UrlHelper.URL_FOR_DELETING_POST)
+                .post(formBody.build())
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+
             @Override
-            public void run() {
-
-                OkHttpClient client = new OkHttpClient();
-                FormBody.Builder formBody = new FormBody.Builder();
-                formBody.add("method", "delete");
-                formBody.add("post_id", postId);
-                final Request request = new Request.Builder()
-                        .url(UrlHelper.URL_FOR_DELETING_POST)
-                        .post(formBody.build())
-                        .build();
-
-                client.newCall(request).enqueue(new Callback() {
-
-                    @Override
-                    public void onFailure(@NotNull Call call, @NotNull IOException e) {
-                        Log.e("test", "onFailure: 删除帖子失败");
-                    }
-
-                    @Override
-                    public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
-                        Log.e("test", "onResponse: 删除帖子成功");
-                        android.os.Message message = new android.os.Message();
-                        message.what = DELETE_POST;
-                        message.arg1 = position;
-                        myHandler.sendMessage(message);
-                    }
-                });
-
+            public void onFailure(@NotNull Call call, @NotNull IOException e) {
+                Log.e("test", "onFailure: 删除帖子失败");
             }
 
+            @Override
+            public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
+                Log.e("test", "onResponse: 删除帖子成功");
+                android.os.Message message = new android.os.Message();
+                message.what = DELETE_POST;
+                message.arg1 = position;
+                myHandler.sendMessage(message);
+            }
         });
 
     }
@@ -269,7 +250,6 @@ public class ForumActivity extends AppCompatActivity {
             @Override
             public void onItemClick(View view, int position) {
                 String post_json = JSON.toJSONString(postList.get(position));
-                Toast.makeText(view.getContext(), "传递前json: " + post_json, Toast.LENGTH_LONG).show();
                 Intent intent = new Intent(ForumActivity.this, PostActivity.class);
                 intent.putExtra("post", post_json);
                 intent.putExtra("user_id", userId);

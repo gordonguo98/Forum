@@ -4,6 +4,12 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:context=".ForumActivity">
     <item
+        android:id="@+id/action_choose_attachment"
+        android:orderInCategory="90"
+        android:title=""
+        android:icon="@drawable/ic_attachment_black_24dp"
+        app:showAsAction="always" />
+    <item
         android:id="@+id/action_publish_post"
         android:orderInCategory="90"
         android:title="发布"

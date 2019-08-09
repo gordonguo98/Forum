@@ -2,10 +2,12 @@ package com.gordon.forum.Activity;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.database.Cursor;
@@ -23,6 +25,7 @@ import android.widget.GridView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.gordon.forum.Adapter.DialogItemAdapter;
 import com.gordon.forum.Adapter.MultiImageAdapter;
 import com.gordon.forum.Model.ImageItem;
 import com.gordon.forum.R;
@@ -49,8 +52,12 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import ru.bartwell.exfilepicker.ExFilePicker;
+import ru.bartwell.exfilepicker.data.ExFilePickerResult;
 
 public class NewPostActivity extends AppCompatActivity {
+
+    private Menu menu;
 
     private String courseId;
     private String userId;
@@ -58,13 +65,17 @@ public class NewPostActivity extends AppCompatActivity {
 
     private static final int REQUEST_CODE_CHOOSE = 3;
     private static final int REQUEST_FOR_RETURN = 103;
+    private static final int EX_FILE_PICKER_RESULT = 104;
 
     private ArrayList<ImageItem> images = new ArrayList<>();
-    //adapter是核心，添加按钮的处理删除的处理都在里面，后面会说，别急
+
     private MultiImageAdapter adapter;
 
     private EditText editText;
     private GridView gridView;
+
+    List<String> fileList = new ArrayList<>();
+    List<String> fileName = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -101,6 +112,7 @@ public class NewPostActivity extends AppCompatActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.activity_new_post_menu, menu);
+        this.menu = menu;
         return true;
     }
 
@@ -113,12 +125,25 @@ public class NewPostActivity extends AppCompatActivity {
         }
 
         if (item.getItemId() == R.id.action_publish_post) {
+            if(editText.getText().toString().equals("")) {
+                Toast.makeText(NewPostActivity.this, "请输入内容", Toast.LENGTH_SHORT).show();
+                return false;
+            }
             publishPost();
             while(finishPosting);
             Intent intent = new Intent();
             intent.putExtra("IsSuccess", 1);
             setResult(REQUEST_FOR_RETURN, intent);
             finish();
+            return true;
+        }
+
+        if (item.getItemId() == R.id.action_choose_attachment) {
+            if(fileList.size() == 0)
+                chooseAttachment();
+            else{
+                showDialog();
+            }
             return true;
         }
 
@@ -138,6 +163,37 @@ public class NewPostActivity extends AppCompatActivity {
 
     }
 
+    private void showDialog(){
+
+        final DialogItemAdapter dialogItemAdapter = new DialogItemAdapter(NewPostActivity.this, fileName);
+        dialogItemAdapter.setOnDialogItemClickListener(new DialogItemAdapter.OnDialogItemClickListener() {
+            @Override
+            public void onDialogItemClick(int position) {
+                fileName.remove(position);
+                fileList.remove(position);
+                dialogItemAdapter.notifyDataSetChanged();
+            }
+        });
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle("选择发送的文件")
+                .setIcon(R.drawable.ic_file_upload_black_24dp)
+                .setNeutralButton("添加", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        chooseAttachment();
+                    }
+                })
+                .setPositiveButton("确定", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+
+                    }
+                })
+                .setAdapter(dialogItemAdapter, null).create();
+        dialog.show();
+    }
+
     public void publishPost(){
 
         MediaType MEDIA_TYPE;
@@ -154,11 +210,22 @@ public class NewPostActivity extends AppCompatActivity {
             multiBuilder.addFormDataPart("image_" + i, file.getName(), fileBody);
         }
 
+        for (int i = 1; i <= fileList.size(); i++) {
+
+            File file = new File(fileList.get(i -1 ));
+            Log.e("test", "onResponse: 发送文件名称：" + file.getName());
+
+            MEDIA_TYPE = MediaType.parse("*");
+            RequestBody fileBody = MultipartBody.create(MEDIA_TYPE, file);
+            multiBuilder.addFormDataPart("file_" + i, file.getName(), fileBody);
+        }
+
         multiBuilder.addFormDataPart("method", "create");
         multiBuilder.addFormDataPart("email", userId);
         multiBuilder.addFormDataPart("course_id", courseId);
         multiBuilder.addFormDataPart("question", editText.getText().toString());
         multiBuilder.addFormDataPart("image_num", images.size()+"");
+        multiBuilder.addFormDataPart("file_num", fileList.size()+"");
 
         MultipartBody requestBody = multiBuilder.build();
 
@@ -206,26 +273,55 @@ public class NewPostActivity extends AppCompatActivity {
                 .forResult(REQUEST_CODE_CHOOSE);//请求码
     }
 
+    private void chooseAttachment(){
+        ExFilePicker exFilePicker = new ExFilePicker();
+        exFilePicker.start(this, EX_FILE_PICKER_RESULT);
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (data != null && requestCode == REQUEST_CODE_CHOOSE) {
+        if (requestCode == REQUEST_CODE_CHOOSE) {
 
-            List<Uri> mSelected = Matisse.obtainResult(data);
-            // 可以同时插入多张图片
-            for (Uri imageUri : mSelected) {
-                String imagePath = getPath(NewPostActivity.this, imageUri);
-                ImageItem imageItem = new ImageItem();
-                imageItem.path = imagePath;
-                images.add(imageItem);
+            if(null != data) {
+                List<Uri> mSelected = Matisse.obtainResult(data);
+                // 可以同时插入多张图片
+                for (Uri imageUri : mSelected) {
+                    String imagePath = getPath(NewPostActivity.this, imageUri);
+                    ImageItem imageItem = new ImageItem();
+                    imageItem.path = imagePath;
+                    images.add(imageItem);
+                }
+
+                //拿到图片数据后把images传过去
+                adapter = new MultiImageAdapter(this, images);
+                gridView.setAdapter(adapter);
+            }else{
+                Toast.makeText(this, "没有选择图片", Toast.LENGTH_SHORT).show();
             }
 
-            //拿到图片数据后把images传过去
-            adapter = new MultiImageAdapter(this,images);
-            gridView.setAdapter(adapter);
-
-        } else {
-            Toast.makeText(this, "没有选择图片", Toast.LENGTH_SHORT).show();
+        } else if(requestCode == EX_FILE_PICKER_RESULT){
+            ExFilePickerResult result = ExFilePickerResult.getFromIntent(data);
+            if (result != null && result.getCount() > 0) {
+                // Here is object contains selected files names and path
+                Log.e("test", "onActivityResult: "
+                        + "\n" + result.getPath()
+                        + "\n" + result.getNames());
+                boolean hasFolder = false;
+                fileName.addAll(result.getNames());
+                for(String name: fileName){
+                    if(name.contains("."))
+                        fileList.add(result.getPath() + name);
+                    else
+                        hasFolder = true;
+                }
+                if(hasFolder)
+                    Toast.makeText(NewPostActivity.this,
+                        "不支持文件夹", Toast.LENGTH_SHORT).show();
+                if(fileList.size() != 0)
+                    if(null != menu)
+                        menu.findItem(R.id.action_choose_attachment).setIcon(R.drawable.ic_attachment_pressed_24dp);
+            }
         }
     }
 

@@ -25,10 +25,12 @@ public class LikeDao {
 
         SQLiteDatabase db = helper.getWritableDatabase();
 
+        int results = 0;
         Cursor cursor = null;
         try {
             cursor = db.query("tb_userlike", null, "userid=? and postid=?",
                     new String[]{userid, postid+""}, null, null, null);
+            results = cursor.getCount();
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
@@ -39,7 +41,7 @@ public class LikeDao {
                 db.close();
             }
         }
-        return cursor != null && cursor.getCount() != 0;
+        return results != 0;
     }
 
     /**
@@ -91,7 +93,7 @@ public class LikeDao {
 
         int ret = 0;
         try {
-            ret = db.delete("tb_", "userid=? and postid=?", new String[]{userid, postid+""});
+            ret = db.delete("tb_userlike", "userid=? and postid=?", new String[]{userid, postid+""});
         }
 
         catch (Exception e) {

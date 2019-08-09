@@ -23,19 +23,20 @@ public class Post {
     private User creator;
     @JSONField(name="content_images")
     private List<String> contentImages = new ArrayList<>();
-
-
+    @JSONField(name="content_files")
+    private List<String> contentFiles = new ArrayList<>();
     @JSONField(serialize = false, deserialize = false)
     private List<Message> messages = new ArrayList<>();
 
     private Post(){}
 
-    public Post(int postId, User creator, String question, String createTime, List<String> contentImages, int likeNum, int replyNum, List<Message> messages) {
+    public Post(int postId, User creator, String question, String createTime, List<String> contentImages, List<String> contentFiles, int likeNum, int replyNum, List<Message> messages) {
         this.postId = postId;
         this.creator = creator;
         this.question = question;
         this.createTime = createTime;
         this.contentImages = contentImages;
+        this.contentFiles = contentFiles;
         this.likeNum = likeNum;
         this.replyNum = replyNum;
         this.messages = messages;
@@ -103,6 +104,15 @@ public class Post {
 
     public void setCourseId(int courseId) {
         this.courseId = courseId;
+    }
+
+
+    public List<String> getContentFiles() {
+        return contentFiles;
+    }
+
+    public void setContentFiles(List<String> contentFiles) {
+        this.contentFiles = contentFiles;
     }
 
     public List<Message> getMessages() {
