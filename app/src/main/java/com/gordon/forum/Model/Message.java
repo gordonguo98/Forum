@@ -2,6 +2,9 @@ package com.gordon.forum.Model;
 
 import com.alibaba.fastjson.annotation.JSONField;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class Message {
 
     @JSONField(name="post_id")
@@ -14,15 +17,21 @@ public class Message {
     private String sendTime;
     @JSONField(name="sender")
     private User sender;
+    @JSONField(name="content_images")
+    private List<String> contentImages = new ArrayList<>();
+    @JSONField(name="content_files")
+    private List<String> contentFiles = new ArrayList<>();
 
     public Message(){}
 
-    public Message(int postId, int messageId, User sender, String senderTime, String content) {
+    public Message(int postId, int messageId, User sender, String senderTime, String content, List<String> contentImages, List<String> contentFiles) {
         this.postId = postId;
         this.messageId = messageId;
         this.sender = sender;
         this.sendTime = senderTime;
         this.content = content;
+        this.contentImages = contentImages;
+        this.contentFiles = contentFiles;
     }
 
     public int getPostId() {
@@ -63,5 +72,21 @@ public class Message {
 
     public void setContent(String content) {
         this.content = content;
+    }
+
+    public List<String> getContentImages() {
+        return contentImages;
+    }
+
+    public void setContentImages(List<String> contentImages) {
+        this.contentImages = contentImages;
+    }
+
+    public List<String> getContentFiles() {
+        return contentFiles;
+    }
+
+    public void setContentFiles(List<String> contentFiles) {
+        this.contentFiles = contentFiles;
     }
 }

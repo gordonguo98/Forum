@@ -13,8 +13,6 @@
         android:layout_height="28dp"
         android:layout_marginStart="16dp"
         android:layout_marginTop="16dp"
-        app:civ_border_color="#FF2F2F2F"
-        app:civ_border_width="1dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -53,5 +51,33 @@
         app:layout_constraintStart_toStartOf="@+id/message_profile_photo"
         app:layout_constraintTop_toBottomOf="@+id/message_profile_photo"
         tools:textAlignment="textStart" />
+
+    <com.lzy.ninegrid.NineGridView
+        android:id="@+id/message_images"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="16dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/message_content"
+        app:ngv_gridSpacing="3dp"
+        app:ngv_maxSize="9"
+        app:ngv_mode="grid"
+        app:ngv_singleImageRatio="1"
+        app:ngv_singleImageSize="250dp" />
+
+    <ImageView
+        android:id="@+id/message_attachment"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="24dp"
+        android:layout_marginBottom="8dp"
+        android:src="@drawable/ic_attachment_pressed_24dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/message_images" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

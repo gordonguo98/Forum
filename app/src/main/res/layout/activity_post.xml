@@ -50,8 +50,6 @@
                         android:layout_height="32dp"
                         android:layout_marginStart="16dp"
                         android:layout_marginTop="16dp"
-                        app:civ_border_color="#FF2F2F2F"
-                        app:civ_border_width="1dp"
                         app:layout_constraintStart_toStartOf="parent"
                         app:layout_constraintTop_toTopOf="parent" />
 

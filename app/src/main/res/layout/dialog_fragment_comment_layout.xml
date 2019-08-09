@@ -24,8 +24,19 @@
         android:layout_below="@id/edit_comment"
         android:layout_marginStart="10dp"
         android:layout_marginBottom="10dp"
-        android:src="@drawable/ic_photo_camera_black_24dp"
+        android:src="@drawable/ic_photo_black_24dp"
         android:tintMode="multiply"/>
+
+    <ImageView
+        android:id="@+id/image_btn_attachment"
+        android:layout_width="25dp"
+        android:layout_height="25dp"
+        android:layout_below="@id/edit_comment"
+        android:layout_marginStart="10dp"
+        android:layout_marginBottom="10dp"
+        android:layout_toEndOf="@+id/image_btn_photo"
+        android:src="@drawable/ic_attachment_24dp"
+        android:tintMode="multiply" />
 
     <ImageView
         android:id="@+id/image_btn_comment_send"

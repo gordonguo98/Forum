@@ -1,6 +1,7 @@
 package com.gordon.forum.Activity;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -13,9 +14,13 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
+import android.database.Cursor;
 import android.graphics.Bitmap;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
+import android.provider.MediaStore;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.MenuItem;
@@ -31,26 +36,33 @@ import com.alibaba.fastjson.JSONException;
 import com.alibaba.fastjson.JSONObject;
 import com.gordon.forum.Adapter.DownloadAdapter;
 import com.gordon.forum.Adapter.MessageAdapter;
+import com.gordon.forum.Adapter.MultiImageAdapter;
 import com.gordon.forum.Database.LikeDao;
 import com.gordon.forum.Fragment.CommentDialogFragment;
 import com.gordon.forum.Model.DownloadInfo;
+import com.gordon.forum.Model.ImageItem;
 import com.gordon.forum.Model.Message;
 import com.gordon.forum.Model.Post;
 import com.gordon.forum.R;
 import com.gordon.forum.Util.BitmapUtil;
 import com.gordon.forum.Util.Constant;
 import com.gordon.forum.Util.GlideImageLoader;
+import com.gordon.forum.Util.MyGlideEngine;
 import com.gordon.forum.Util.UrlHelper;
 import com.lzy.ninegrid.ImageInfo;
 import com.lzy.ninegrid.NineGridView;
 import com.lzy.ninegrid.preview.NineGridViewClickAdapter;
 import com.squareup.picasso.Picasso;
+import com.zhihu.matisse.Matisse;
+import com.zhihu.matisse.MimeType;
+import com.zhihu.matisse.internal.entity.CaptureStrategy;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -59,10 +71,15 @@ import de.hdodenhof.circleimageview.CircleImageView;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.FormBody;
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
+import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
+import ru.bartwell.exfilepicker.ExFilePicker;
+import ru.bartwell.exfilepicker.data.ExFilePickerResult;
 
 public class PostActivity extends AppCompatActivity implements View.OnClickListener {
 
@@ -77,6 +94,9 @@ public class PostActivity extends AppCompatActivity implements View.OnClickListe
     private MessageAdapter messageAdapter;
     private DownloadAdapter downloadAdapter;
     private List<DownloadInfo> downloadInfos = new ArrayList<>();
+    private List<ImageItem> contentImages = new ArrayList<>();//评论的图片
+    private List<String> contentFiles = new ArrayList<>();//评论的附件
+    private List<String> fileName = new ArrayList<>();
 
     private SwipeRefreshLayout refreshLayout;
     private CircleImageView profilePhoto;
@@ -90,12 +110,15 @@ public class PostActivity extends AppCompatActivity implements View.OnClickListe
 
     private MyHandler myHandler;
 
+    private static final int REQUEST_CODE_CHOOSE = 3;
     private static final int UPDATE_MESSAGE_LIST = 200;
     private static final int STOP_REFRESHING = 201;
     private static final int AFTER_SENDING = 202;
     private static final int POSTING_LIKE = 203;
     private static final int DELETING_LIKE = 204;
     private static final int DELETING_MESSAGE = 205;
+    private static final int REQUEST_FOR_RETURN = 103;
+    private static final int EX_FILE_PICKER_RESULT = 104;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -163,8 +186,22 @@ public class PostActivity extends AppCompatActivity implements View.OnClickListe
                 CommentDialogFragment commentDialogFragment = new CommentDialogFragment();
                 commentDialogFragment.setOnSendListener(new CommentDialogFragment.OnSendListener() {
                     @Override
-                    public void OnSend(String content) {
-                        sendMessage(content);
+                    public void OnSend(String content, List<ImageItem> contentImages, List<String> contentFiles) {
+                        sendMessage(content, contentImages, contentFiles);
+                    }
+                });
+                commentDialogFragment.setOnPhotoListener(new CommentDialogFragment.OnPhotoListener() {
+                    @Override
+                    public void OnPhoto(List<ImageItem> contentImages) {
+                        //TODO
+                        pickMessagePhoto(contentImages);
+                    }
+                });
+                commentDialogFragment.setOnAttachmentListener(new CommentDialogFragment.OnAttachmentListener() {
+                    @Override
+                    public void OnAttachment(List<String> contentFiles) {
+                        //TODO
+                        pickMessageAttachment(contentFiles);
                     }
                 });
                 commentDialogFragment.show(getSupportFragmentManager(), "CommentDialogFragment");
@@ -226,13 +263,20 @@ public class PostActivity extends AppCompatActivity implements View.OnClickListe
             attachmentIV.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    getAttachment();
+                    getAttachment(post.getContentFiles());
                 }
             });
         }
 
         commentsRV.setLayoutManager(new LinearLayoutManager(mContext));
         messageAdapter = new MessageAdapter(mContext, messagesList);
+        messageAdapter.setOnMessageAttachmentListener(new MessageAdapter.OnMessageAttachmentListener() {
+            @Override
+            public void onMessageAttachment(List<String> contentFiles) {
+                getAttachment(contentFiles);
+            }
+        });
+
         commentsRV.setAdapter(messageAdapter);
         commentsRV.setHasFixedSize(true);
         //commentsRV.setNestedScrollingEnabled(false);
@@ -436,16 +480,44 @@ public class PostActivity extends AppCompatActivity implements View.OnClickListe
      * 发送评论
      * @param content
      */
-    private void sendMessage(final String content){
+    private void sendMessage(final String content, List<ImageItem> images, List<String> files){
+
+        MediaType MEDIA_TYPE;
+        MultipartBody.Builder multiBuilder = new MultipartBody.Builder();
+        multiBuilder.setType(MultipartBody.FORM);
+
+        for (int i = 1; i <= images.size(); i++) {
+
+            File file = new File(images.get(i - 1).path);
+            Log.e("test", "onResponse: 发送图片名称：" + file.getName());
+            MEDIA_TYPE = file.getName().endsWith("png") ? MediaType.parse("image/png") : MediaType.parse("image/jpeg");
+            RequestBody fileBody = MultipartBody.create(MEDIA_TYPE, file);
+            multiBuilder.addFormDataPart("image_" + i, file.getName(), fileBody);
+        }
+
+        for (int i = 1; i <= files.size(); i++) {
+
+            File file = new File(files.get(i -1 ));
+            Log.e("test", "onResponse: 发送文件名称：" + file.getName());
+
+            MEDIA_TYPE = MediaType.parse("*");
+            RequestBody fileBody = MultipartBody.create(MEDIA_TYPE, file);
+            multiBuilder.addFormDataPart("file_" + i, file.getName(), fileBody);
+        }
+
+        multiBuilder.addFormDataPart("method", "create");
+        multiBuilder.addFormDataPart("email", userId);
+        multiBuilder.addFormDataPart("post_id", postId + "");
+        multiBuilder.addFormDataPart("content", content);
+        multiBuilder.addFormDataPart("image_num", images.size()+"");
+        multiBuilder.addFormDataPart("file_num", files.size()+"");
+
+        MultipartBody requestBody = multiBuilder.build();
 
         OkHttpClient client = new OkHttpClient();
-        FormBody.Builder formBody = new FormBody.Builder();
-        formBody.add("email", userId);
-        formBody.add("post_id", postId + "");
-        formBody.add("content", content);
         final Request request = new Request.Builder()
                 .url(UrlHelper.URL_FOR_POSTING_COMMENT)
-                .post(formBody.build())
+                .post(requestBody)
                 .build();
 
         client.newCall(request).enqueue(new Callback() {
@@ -457,7 +529,7 @@ public class PostActivity extends AppCompatActivity implements View.OnClickListe
 
             @Override
             public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
-                Log.e("test", "onResponse: 回复成功");
+                Log.e("test", "onResponse: 回复成功"+response.body().string());
                 android.os.Message message = new android.os.Message();
                 message.what = AFTER_SENDING;
                 myHandler.sendMessage(message);
@@ -504,7 +576,7 @@ public class PostActivity extends AppCompatActivity implements View.OnClickListe
     /**
      * 下载附件对话框
      */
-    private void getAttachment(){
+    private void getAttachment(final List<String> fileUrls){
         //TODO
         AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle("下载附件")
@@ -514,20 +586,20 @@ public class PostActivity extends AppCompatActivity implements View.OnClickListe
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         //确认下载
-                        downloadAttachment();
+                        downloadAttachment(fileUrls);
                     }
                 })
-                .setMessage("有" + post.getContentFiles().size() + "个附件，确认下载？").create();
+                .setMessage("有" + fileUrls.size() + "个附件，确认下载？").create();
         dialog.show();
     }
 
     /**
      * 下载附件
      */
-    private void downloadAttachment(){
+    private void downloadAttachment(List<String> fileUrls){
         //TODO
         downloadInfos.clear();
-        for(String fileurl: post.getContentFiles())
+        for(String fileurl: fileUrls)
             downloadInfos.add(new DownloadInfo(fileurl));
         downloadAdapter = new DownloadAdapter(PostActivity.this, downloadInfos);
         downloadAdapter.setOnDownloadCacelListener(new DownloadAdapter.OnDownloadCacelListener() {
@@ -575,6 +647,98 @@ public class PostActivity extends AppCompatActivity implements View.OnClickListe
 
             Toast.makeText(this,"下载出错",Toast.LENGTH_SHORT).show();
         }
+    }
+
+    public void chooseImages(int limitation){
+
+        Matisse.from(this)
+                .choose(MimeType.of(MimeType.JPEG, MimeType.PNG))//照片视频全部显示MimeType.allOf()
+                .countable(true)//true:选中后显示数字;false:选中后显示对号
+                .maxSelectable(limitation)//最大选择数量为9
+                //.addFilter(new GifSizeFilter(320, 320, 5 * Filter.K * Filter.K))
+                .gridExpectedSize(getResources().getDimensionPixelSize(R.dimen.grid_expected_size))//图片显示表格的大小
+                .restrictOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED)//图像选择和预览活动所需的方向
+                .thumbnailScale(0.85f)//缩放比例
+                .theme(R.style.Matisse_Zhihu)//主题  暗色主题 R.style.Matisse_Dracula
+                .imageEngine(new MyGlideEngine())//图片加载方式，Glide4需要自定义实现
+                .capture(true) //是否提供拍照功能，兼容7.0系统需要下面的配置
+                //参数1 true表示拍照存储在共有目录，false表示存储在私有目录；参数2与 AndroidManifest中authorities值相同，用于适配7.0系统 必须设置
+                .captureStrategy(new CaptureStrategy(true, "com.gordon.forum.fileprovider"))//存储到哪里
+                .forResult(REQUEST_CODE_CHOOSE);//请求码
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_CODE_CHOOSE) {
+
+            if(null != data) {
+                List<Uri> mSelected = Matisse.obtainResult(data);
+                // 可以同时插入多张图片
+                for (Uri imageUri : mSelected) {
+                    String imagePath = getPath(PostActivity.this, imageUri);
+                    ImageItem imageItem = new ImageItem();
+                    imageItem.path = imagePath;
+                    contentImages.add(imageItem);
+                }
+            }else{
+                Toast.makeText(this, "没有选择图片", Toast.LENGTH_SHORT).show();
+            }
+
+        } else if(requestCode == EX_FILE_PICKER_RESULT){
+            ExFilePickerResult result = ExFilePickerResult.getFromIntent(data);
+            if (result != null && result.getCount() > 0) {
+                // Here is object contains selected files names and path
+                Log.e("test", "onActivityResult: "
+                        + "\n" + result.getPath()
+                        + "\n" + result.getNames());
+                boolean hasFolder = false;
+                fileName.addAll(result.getNames());
+                for(String name: fileName){
+                    if(name.contains("."))
+                        contentFiles.add(result.getPath() + name);
+                    else
+                        hasFolder = true;
+                }
+                if(hasFolder)
+                    Toast.makeText(PostActivity.this,
+                            "不支持文件夹", Toast.LENGTH_SHORT).show();
+                }
+        }
+    }
+
+    private String getPath(Context context, Uri uri) {
+        String path = null;
+        Cursor cursor = context.getContentResolver().query(uri, null, null, null, null);
+        if (cursor == null) {
+            return null;
+        }
+        if (cursor.moveToFirst()) {
+            try {
+                path = cursor.getString(cursor.getColumnIndex(MediaStore.Images.Media.DATA));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        cursor.close();
+        return path;
+    }
+
+    private void pickMessagePhoto(List<ImageItem> contentImages){
+        //TODO
+        this.contentImages = contentImages;
+        chooseImages(1);
+    }
+
+    private void pickMessageAttachment(List<String> contentFiles){
+        //TODO
+        this.contentFiles = contentFiles;
+        chooseAttachment();
+    }
+
+    private void chooseAttachment(){
+        ExFilePicker exFilePicker = new ExFilePicker();
+        exFilePicker.start(this, EX_FILE_PICKER_RESULT);
     }
 
     @Override
